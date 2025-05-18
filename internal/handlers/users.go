@@ -192,10 +192,10 @@ func (h *UserHandler) GetDoctors(c *gin.Context) {
 	utils.Success(c, "Doctors fetched successfully", sanitizedDoctors)
 }
 
-// GetDoctorPatients handles fetching all patients that had appointments with a specific doctor.
-// This endpoint is only accessible to doctors and admins.
+// GetDoctorPatients handles fetching all patients.
+// This endpoint is accessible to doctors and admins.
 func (h *UserHandler) GetDoctorPatients(c *gin.Context) {
-	userIDStr, exists := middleware.GetUserIDFromContext(c)
+	_, exists := middleware.GetUserIDFromContext(c)
 	if !exists {
 		utils.Unauthorized(c, "User not authenticated")
 		return
@@ -210,42 +210,15 @@ func (h *UserHandler) GetDoctorPatients(c *gin.Context) {
 		return
 	}
 
-	// Find all appointments for this doctor
-	var appointments []models.Appointment
+	var patients []models.User
 	var err error
-	if userRoleLower == "admin" {
-		// Admins can see all appointments
-		err = h.DB.Find(&appointments).Error
-	} else {
-		// Doctors can only see their own appointments
-		err = h.DB.Where("doctor_id = ?", userIDStr).Find(&appointments).Error
-	}
+
+	// Doctors and Admins should see all patients
+	err = h.DB.Where("role = ?", models.RolePatient).Find(&patients).Error
 
 	if err != nil {
-		utils.InternalServerError(c, "Failed to fetch appointments: "+err.Error())
+		utils.InternalServerError(c, "Failed to fetch patients: "+err.Error())
 		return
-	}
-
-	// Extract unique patient IDs from appointments
-	patientIDs := make(map[string]bool)
-	for _, appointment := range appointments {
-		patientIDs[appointment.PatientID] = true
-	}
-
-	// Convert map keys to slice
-	uniquePatientIDs := make([]string, 0, len(patientIDs))
-	for id := range patientIDs {
-		uniquePatientIDs = append(uniquePatientIDs, id)
-	}
-
-	// Fetch patient details
-	var patients []models.User
-	if len(uniquePatientIDs) > 0 {
-		err = h.DB.Where("id IN ? AND role = ?", uniquePatientIDs, models.RolePatient).Find(&patients).Error
-		if err != nil {
-			utils.InternalServerError(c, "Failed to fetch patients: "+err.Error())
-			return
-		}
 	}
 
 	// Sanitize patient data before sending

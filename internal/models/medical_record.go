@@ -38,12 +38,8 @@ type MedicalRecord struct {
 // MedicalRecordAttachment represents a file attached to a medical record
 type MedicalRecordAttachment struct {
 	BaseModel
-	MedicalRecordID string `gorm:"size:36;index" json:"medicalRecordId"`
-	FileName        string `gorm:"size:255" json:"fileName"`
-	FilePath        string `gorm:"size:255" json:"filePath"`
-	FileSize        int64  `json:"fileSize"`
-	MimeType        string `gorm:"size:100" json:"mimeType"`
-
-	// Relation back to the medical record
-	MedicalRecord MedicalRecord `gorm:"foreignKey:MedicalRecordID" json:"-"`
+	MedicalRecordID string `json:"medicalRecordId" gorm:"not null;type:varchar(36)"` // Changed from uint to string to match MedicalRecord.ID
+	FileName        string `json:"fileName" gorm:"not null"`                         // Original name of the file
+	FileType        string `json:"fileType" gorm:"not null"`                         // MIME type of the file
+	FileData        []byte `json:"-" gorm:"type:longblob;not null"`                  // File content as binary data (longblob for MySQL)
 }

@@ -46,23 +46,31 @@ func AuthMiddleware(cfg *config.Config) gin.HandlerFunc {
 // It should be used *after* AuthMiddleware.
 func RoleAuthMiddleware(allowedRoles ...models.Role) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		userRole, exists := c.Get("userRole")
+		userRoleFromContext, exists := c.Get("userRole")
 		if !exists {
 			utils.InternalServerError(c, "User role not found in context. AuthMiddleware might be missing.")
 			c.Abort()
 			return
 		}
 
-		role, ok := userRole.(models.Role)
+		// Assuming userRoleFromContext is a string (like "DOCTOR" from JWT claims)
+		requestingUserRoleStr, ok := userRoleFromContext.(string)
 		if !ok {
-			utils.InternalServerError(c, "User role in context is not of expected type.")
-			c.Abort()
-			return
+			// If it's already models.Role, convert to string for comparison
+			if roleFromContext, isModelRole := userRoleFromContext.(models.Role); isModelRole {
+				requestingUserRoleStr = string(roleFromContext)
+				ok = true // Mark as ok since we converted it
+			} else {
+				utils.InternalServerError(c, "User role in context is not of expected type (string or models.Role).")
+				c.Abort()
+				return
+			}
 		}
 
 		isAllowed := false
-		for _, allowedRole := range allowedRoles {
-			if role == allowedRole {
+		for _, allowedRole := range allowedRoles { // allowedRole is models.Role (e.g., "doctor")
+			// Perform case-insensitive comparison
+			if strings.EqualFold(requestingUserRoleStr, string(allowedRole)) {
 				isAllowed = true
 				break
 			}

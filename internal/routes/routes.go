@@ -100,6 +100,19 @@ func SetupRoutes(router *gin.Engine, db *gorm.DB, cfg *config.Config) {
 
 			// Doctors delete their records, Admins can delete any
 			medicalRecordRoutes.DELETE("/:id", middleware.RoleAuthMiddleware(models.RoleDoctor, models.RoleAdmin), medicalRecordHandler.DeleteMedicalRecord) // Further auth in handler
+
+			// Attachment routes for a specific medical record
+			attachmentRoutes := medicalRecordRoutes.Group("/:id/attachments")
+			attachmentRoutes.Use(middleware.RoleAuthMiddleware(models.RoleDoctor)) // Only Doctors can manage attachments
+			{
+				attachmentRoutes.POST("", medicalRecordHandler.UploadMedicalRecordAttachment)
+				// Potentially add GET for listing attachments for a record, DELETE for an attachment, etc.
+			}
+
+			// New route to get a specific attachment by its own ID
+			// This is outside the /:id/attachments group because attachment ID is globally unique
+			// Accessible by users who have access to the parent medical record (handled in the handler)
+			private.GET("/medical-records/attachments/:attachmentId", medicalRecordHandler.GetMedicalRecordAttachment)
 		}
 		// Messaging routes
 		messageRoutes := private.Group("/messages")
