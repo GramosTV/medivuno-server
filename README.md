@@ -1,5 +1,7 @@
 # Healthcare App Server (Golang)
 
+[Client Repository](https://github.com/GramosTV/medivuno-client)
+
 This is the backend server for the Healthcare App, built with Golang and Gin framework. It provides a RESTful API for managing users (patients, doctors, admins), appointments, medical records, and secure messaging.
 
 ## Features
